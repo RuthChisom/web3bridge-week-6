@@ -32,15 +32,15 @@ describe("MultiSigWallet", function () {
   it("should accept deposits", async function () {
     await user1.sendTransaction({
       to: wallet.address,
-      value: ethers.utils.parseEther("2"),
+      value: ethers.parseEther("2"),
     });
 
     const balance = await provider.getBalance(wallet.address);
-    expect(balance).to.equal(ethers.utils.parseEther("2"));
+    expect(balance).to.equal(ethers.parseEther("2"));
   });
 
   it("should allow owners to create transactions", async function () {
-    await wallet.connect(user1).createTransaction(recipient.address, ethers.utils.parseEther("1"));
+    await wallet.connect(user1).createTransaction(recipient.address, ethers.parseEther("1"));
     const tx = await wallet.getTransactions();
     expect(tx.length).to.equal(1);
     expect(tx[0].to).to.equal(recipient.address);
@@ -48,7 +48,7 @@ describe("MultiSigWallet", function () {
 
   it("should not allow non-owners to create transactions", async function () {
     await expect(
-      wallet.connect(nonOwner).createTransaction(recipient.address, ethers.utils.parseEther("1"))
+      wallet.connect(nonOwner).createTransaction(recipient.address, ethers.parseEther("1"))
     ).to.be.revertedWith("Not an owner");
   });
 
@@ -56,11 +56,11 @@ describe("MultiSigWallet", function () {
     // Deposit funds
     await user1.sendTransaction({
       to: wallet.address,
-      value: ethers.utils.parseEther("3"),
+      value: ethers.parseEther("3"),
     });
 
     // Create transaction
-    await wallet.connect(user1).createTransaction(recipient.address, ethers.utils.parseEther("2"));
+    await wallet.connect(user1).createTransaction(recipient.address, ethers.parseEther("2"));
 
     // Sign with all three owners
     await wallet.connect(user1).signTransaction(0);
@@ -71,16 +71,16 @@ describe("MultiSigWallet", function () {
     await wallet.connect(user1).executeTransaction(0);
 
     const balance = await provider.getBalance(wallet.address);
-    expect(balance).to.equal(ethers.utils.parseEther("1")); // 3 - 2
+    expect(balance).to.equal(ethers.parseEther("1")); // 3 - 2
   });
 
   it("should not execute transaction without enough signatures", async function () {
     await user1.sendTransaction({
       to: wallet.address,
-      value: ethers.utils.parseEther("2"),
+      value: ethers.parseEther("2"),
     });
 
-    await wallet.connect(user1).createTransaction(recipient.address, ethers.utils.parseEther("2"));
+    await wallet.connect(user1).createTransaction(recipient.address, ethers.parseEther("2"));
     await wallet.connect(user1).signTransaction(0);
     await wallet.connect(user2).signTransaction(0);
 
@@ -88,7 +88,7 @@ describe("MultiSigWallet", function () {
   });
 
   it("should prevent double signing by the same owner", async function () {
-    await wallet.connect(user1).createTransaction(recipient.address, ethers.utils.parseEther("1"));
+    await wallet.connect(user1).createTransaction(recipient.address, ethers.parseEther("1"));
     await wallet.connect(user1).signTransaction(0);
 
     await expect(wallet.connect(user1).signTransaction(0)).to.be.revertedWith("Already signed");
@@ -97,10 +97,10 @@ describe("MultiSigWallet", function () {
   it("should prevent executing an already executed transaction", async function () {
     await user1.sendTransaction({
       to: wallet.address,
-      value: ethers.utils.parseEther("2"),
+      value: ethers.parseEther("2"),
     });
 
-    await wallet.connect(user1).createTransaction(recipient.address, ethers.utils.parseEther("2"));
+    await wallet.connect(user1).createTransaction(recipient.address, ethers.parseEther("2"));
     await wallet.connect(user1).signTransaction(0);
     await wallet.connect(user2).signTransaction(0);
     await wallet.connect(user3).signTransaction(0);
