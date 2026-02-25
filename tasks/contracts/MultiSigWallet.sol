@@ -1,34 +1,89 @@
-// SPDX-License-Identifier: UNLICENSED
-pragma solidity ^0.8.28;
+// SPDX-License-Identifier: MIT
+pragma solidity ^0.8.20;
 
-// Uncomment this line to use console.log
-// import "hardhat/console.sol";
+contract MultiSigWallet {
+    // Owners of the wallet
+    address[] public owners;
+    uint public requiredSignatures;
 
-contract Lock {
-    uint public unlockTime;
-    address payable public owner;
-
-    event Withdrawal(uint amount, uint when);
-
-    constructor(uint _unlockTime) payable {
-        require(
-            block.timestamp < _unlockTime,
-            "Unlock time should be in the future"
-        );
-
-        unlockTime = _unlockTime;
-        owner = payable(msg.sender);
+    struct Transaction {
+        address to;
+        uint amount;
+        bool executed;
+        uint signatureCount;
     }
 
-    function withdraw() public {
-        // Uncomment this line, and the import of "hardhat/console.sol", to print a log in your terminal
-        // console.log("Unlock time is %o and block timestamp is %o", unlockTime, block.timestamp);
+    // Mapping: txId => owner => signed
+    mapping(uint => mapping(address => bool)) public signatures;
 
-        require(block.timestamp >= unlockTime, "You can't withdraw yet");
-        require(msg.sender == owner, "You aren't the owner");
+    Transaction[] public transactions;
 
-        emit Withdrawal(address(this).balance, block.timestamp);
+    event Deposit(address indexed sender, uint amount);
+    event TransactionCreated(uint indexed txId, address indexed to, uint amount);
+    event TransactionExecuted(uint indexed txId);
+    event TransactionSigned(uint indexed txId, address indexed owner);
 
-        owner.transfer(address(this).balance);
+    constructor(address[] memory _owners, uint _requiredSignatures) {
+        require(_owners.length >= _requiredSignatures, "Owners less than required signatures");
+        owners = _owners;
+        requiredSignatures = _requiredSignatures;
+    }
+
+    modifier onlyOwner() {
+        bool isOwner = false;
+        for (uint i = 0; i < owners.length; i++) {
+            if (owners[i] == msg.sender) {
+                isOwner = true;
+                break;
+            }
+        }
+        require(isOwner, "Not an owner");
+        _;
+    }
+
+    // Deposit ETH to the wallet
+    receive() external payable {
+        emit Deposit(msg.sender, msg.value);
+    }
+
+    // Create a transaction
+    function createTransaction(address _to, uint _amount) external onlyOwner {
+        transactions.push(Transaction({
+            to: _to,
+            amount: _amount,
+            executed: false,
+            signatureCount: 0
+        }));
+        emit TransactionCreated(transactions.length - 1, _to, _amount);
+    }
+
+    // Sign a transaction
+    function signTransaction(uint _txId) external onlyOwner {
+        Transaction storage txn = transactions[_txId];
+        require(!txn.executed, "Transaction already executed");
+        require(!signatures[_txId][msg.sender], "Already signed");
+
+        signatures[_txId][msg.sender] = true;
+        txn.signatureCount++;
+
+        emit TransactionSigned(_txId, msg.sender);
+    }
+
+    // Execute a transaction if enough signatures
+    function executeTransaction(uint _txId) external onlyOwner {
+        Transaction storage txn = transactions[_txId];
+        require(!txn.executed, "Transaction already executed");
+        require(txn.signatureCount >= requiredSignatures, "Not enough signatures");
+        require(address(this).balance >= txn.amount, "Insufficient balance");
+
+        txn.executed = true;
+        payable(txn.to).transfer(txn.amount);
+
+        emit TransactionExecuted(_txId);
+    }
+
+    // Get all transactions
+    function getTransactions() external view returns (Transaction[] memory) {
+        return transactions;
     }
 }
