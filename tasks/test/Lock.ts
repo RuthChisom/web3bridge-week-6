@@ -6,122 +6,108 @@ import { anyValue } from "@nomicfoundation/hardhat-chai-matchers/withArgs";
 import { expect } from "chai";
 import hre from "hardhat";
 
-describe("Lock", function () {
-  // We define a fixture to reuse the same setup in every test.
-  // We use loadFixture to run this setup once, snapshot that state,
-  // and reset Hardhat Network to that snapshot in every test.
-  async function deployOneYearLockFixture() {
-    const ONE_YEAR_IN_SECS = 365 * 24 * 60 * 60;
-    const ONE_GWEI = 1_000_000_000;
+const { expect } = require("chai");
+const { ethers } = require("hardhat");
 
-    const lockedAmount = ONE_GWEI;
-    const unlockTime = (await time.latest()) + ONE_YEAR_IN_SECS;
+describe("MultiSigWallet", function () {
+  let wallet;
+  let owners;
+  let nonOwner;
+  let recipient;
+  let provider;
 
-    // Contracts are deployed using the first signer/account by default
-    const [owner, otherAccount] = await hre.ethers.getSigners();
+  beforeEach(async function () {
+    [owners0, owners1, owners2, nonOwnerAddress, recipientAddress] =
+      await ethers.getSigners();
+    owners = [owners0.address, owners1.address, owners2.address];
+    nonOwner = nonOwnerAddress;
+    recipient = recipientAddress;
 
-    const Lock = await hre.ethers.getContractFactory("Lock");
-    const lock = await Lock.deploy(unlockTime, { value: lockedAmount });
+    const Wallet = await ethers.getContractFactory("MultiSigWallet");
+    wallet = await Wallet.deploy(owners, 3); // 3 signatures required
+    await wallet.deployed();
 
-    return { lock, unlockTime, lockedAmount, owner, otherAccount };
-  }
-
-  describe("Deployment", function () {
-    it("Should set the right unlockTime", async function () {
-      const { lock, unlockTime } = await loadFixture(deployOneYearLockFixture);
-
-      expect(await lock.unlockTime()).to.equal(unlockTime);
-    });
-
-    it("Should set the right owner", async function () {
-      const { lock, owner } = await loadFixture(deployOneYearLockFixture);
-
-      expect(await lock.owner()).to.equal(owner.address);
-    });
-
-    it("Should receive and store the funds to lock", async function () {
-      const { lock, lockedAmount } = await loadFixture(
-        deployOneYearLockFixture
-      );
-
-      expect(await hre.ethers.provider.getBalance(lock.target)).to.equal(
-        lockedAmount
-      );
-    });
-
-    it("Should fail if the unlockTime is not in the future", async function () {
-      // We don't use the fixture here because we want a different deployment
-      const latestTime = await time.latest();
-      const Lock = await hre.ethers.getContractFactory("Lock");
-      await expect(Lock.deploy(latestTime, { value: 1 })).to.be.revertedWith(
-        "Unlock time should be in the future"
-      );
-    });
+    provider = ethers.provider;
   });
 
-  describe("Withdrawals", function () {
-    describe("Validations", function () {
-      it("Should revert with the right error if called too soon", async function () {
-        const { lock } = await loadFixture(deployOneYearLockFixture);
-
-        await expect(lock.withdraw()).to.be.revertedWith(
-          "You can't withdraw yet"
-        );
-      });
-
-      it("Should revert with the right error if called from another account", async function () {
-        const { lock, unlockTime, otherAccount } = await loadFixture(
-          deployOneYearLockFixture
-        );
-
-        // We can increase the time in Hardhat Network
-        await time.increaseTo(unlockTime);
-
-        // We use lock.connect() to send a transaction from another account
-        await expect(lock.connect(otherAccount).withdraw()).to.be.revertedWith(
-          "You aren't the owner"
-        );
-      });
-
-      it("Shouldn't fail if the unlockTime has arrived and the owner calls it", async function () {
-        const { lock, unlockTime } = await loadFixture(
-          deployOneYearLockFixture
-        );
-
-        // Transactions are sent using the first signer by default
-        await time.increaseTo(unlockTime);
-
-        await expect(lock.withdraw()).not.to.be.reverted;
-      });
+  it("should accept deposits", async function () {
+    await owners0.sendTransaction({
+      to: wallet.address,
+      value: ethers.utils.parseEther("2"),
     });
 
-    describe("Events", function () {
-      it("Should emit an event on withdrawals", async function () {
-        const { lock, unlockTime, lockedAmount } = await loadFixture(
-          deployOneYearLockFixture
-        );
+    const balance = await provider.getBalance(wallet.address);
+    expect(balance).to.equal(ethers.utils.parseEther("2"));
+  });
 
-        await time.increaseTo(unlockTime);
+  it("should allow owners to create transactions", async function () {
+    await wallet.connect(owners0).createTransaction(recipient.address, ethers.utils.parseEther("1"));
+    const tx = await wallet.getTransactions();
+    expect(tx.length).to.equal(1);
+    expect(tx[0].to).to.equal(recipient.address);
+  });
 
-        await expect(lock.withdraw())
-          .to.emit(lock, "Withdrawal")
-          .withArgs(lockedAmount, anyValue); // We accept any value as `when` arg
-      });
+  it("should not allow non-owners to create transactions", async function () {
+    await expect(
+      wallet.connect(nonOwner).createTransaction(recipient.address, ethers.utils.parseEther("1"))
+    ).to.be.revertedWith("Not an owner");
+  });
+
+  it("should allow owners to sign and execute transactions", async function () {
+    // Deposit funds
+    await owners0.sendTransaction({
+      to: wallet.address,
+      value: ethers.utils.parseEther("3"),
     });
 
-    describe("Transfers", function () {
-      it("Should transfer the funds to the owner", async function () {
-        const { lock, unlockTime, lockedAmount, owner } = await loadFixture(
-          deployOneYearLockFixture
-        );
+    // Create transaction
+    await wallet.connect(owners0).createTransaction(recipient.address, ethers.utils.parseEther("2"));
 
-        await time.increaseTo(unlockTime);
+    // Sign with all three owners
+    await wallet.connect(owners0).signTransaction(0);
+    await wallet.connect(owners1).signTransaction(0);
+    await wallet.connect(owners2).signTransaction(0);
 
-        await expect(lock.withdraw()).to.changeEtherBalances(
-          [owner, lock],
-          [lockedAmount, -lockedAmount]
-        );
-      });
+    // Execute transaction
+    await wallet.connect(owners0).executeTransaction(0);
+
+    const balance = await provider.getBalance(wallet.address);
+    expect(balance).to.equal(ethers.utils.parseEther("1")); // 3 - 2
+  });
+
+  it("should not execute transaction without enough signatures", async function () {
+    await owners0.sendTransaction({
+      to: wallet.address,
+      value: ethers.utils.parseEther("2"),
     });
+
+    await wallet.connect(owners0).createTransaction(recipient.address, ethers.utils.parseEther("2"));
+    await wallet.connect(owners0).signTransaction(0);
+    await wallet.connect(owners1).signTransaction(0);
+
+    await expect(wallet.connect(owners0).executeTransaction(0)).to.be.revertedWith("Not enough signatures");
+  });
+
+  it("should prevent double signing by the same owner", async function () {
+    await wallet.connect(owners0).createTransaction(recipient.address, ethers.utils.parseEther("1"));
+    await wallet.connect(owners0).signTransaction(0);
+
+    await expect(wallet.connect(owners0).signTransaction(0)).to.be.revertedWith("Already signed");
+  });
+
+  it("should prevent executing an already executed transaction", async function () {
+    await owners0.sendTransaction({
+      to: wallet.address,
+      value: ethers.utils.parseEther("2"),
+    });
+
+    await wallet.connect(owners0).createTransaction(recipient.address, ethers.utils.parseEther("2"));
+    await wallet.connect(owners0).signTransaction(0);
+    await wallet.connect(owners1).signTransaction(0);
+    await wallet.connect(owners2).signTransaction(0);
+
+    await wallet.connect(owners0).executeTransaction(0);
+
+    await expect(wallet.connect(owners0).executeTransaction(0)).to.be.revertedWith("Transaction already executed");
   });
 });
