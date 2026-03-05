@@ -1,3 +1,6 @@
 [submodule "liquidity-vault/lib/forge-std"]
 	path = liquidity-vault/lib/forge-std
 	url = https://github.com/foundry-rs/forge-std
+[submodule "liquidity-vault/lib/openzeppelin-contracts"]
+	path = liquidity-vault/lib/openzeppelin-contracts
+	url = https://github.com/OpenZeppelin/openzeppelin-contracts

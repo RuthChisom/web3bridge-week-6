@@ -3,6 +3,7 @@ pragma solidity ^0.8.20;
 
 import "./Vault.sol";
 import "./VaultNFT.sol";
+import "openzeppelin-contracts/contracts/utils/Strings.sol";
 
 contract VaultFactory {
 
@@ -46,7 +47,8 @@ contract VaultFactory {
         return vaults[token];
     }
 
-    function toAsciiString(address x) internal pure returns (string memory) {
-        return "token";
+    function toAsciiString(address addr) internal pure returns (string memory) {
+        return Strings.toHexString(uint160(addr), 20);
     }
+
 }

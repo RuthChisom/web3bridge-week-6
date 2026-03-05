@@ -1,66 +1,6 @@
 ## Foundry
 
-**Foundry is a blazing fast, portable and modular toolkit for Ethereum application development written in Rust.**
-
-Foundry consists of:
-
--   **Forge**: Ethereum testing framework (like Truffle, Hardhat and DappTools).
--   **Cast**: Swiss army knife for interacting with EVM smart contracts, sending transactions and getting chain data.
--   **Anvil**: Local Ethereum node, akin to Ganache, Hardhat Network.
--   **Chisel**: Fast, utilitarian, and verbose solidity REPL.
-
-## Documentation
-
-https://book.getfoundry.sh/
-
-## Usage
-
-### Build
-
 ```shell
-$ forge build
-```
+Using foundry, Build a factory that deploys vaults(using CREATE2) for any erc20 token... i.e a user can deposit a token and a vault is created for that token... users can add the vault liquidity to the vault by depositing that same token to Deployment of the vault mints an NFT whose art is fully onchain sg showng the details about that vault like the token details, amount deposited etc... You must use a mainnet fork for this task...which means you will be using reallife tokens as samples Explain the step as if to a novice, especially.. You must use a mainnet fork for this task (when I don't have funds in mainnet)
 
-### Test
-
-```shell
-$ forge test
-```
-
-### Format
-
-```shell
-$ forge fmt
-```
-
-### Gas Snapshots
-
-```shell
-$ forge snapshot
-```
-
-### Anvil
-
-```shell
-$ anvil
-```
-
-### Deploy
-
-```shell
-$ forge script script/Counter.s.sol:CounterScript --rpc-url <your_rpc_url> --private-key <your_private_key>
-```
-
-### Cast
-
-```shell
-$ cast <subcommand>
-```
-
-### Help
-
-```shell
-$ forge --help
-$ anvil --help
-$ cast --help
 ```
