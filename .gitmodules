@@ -1,0 +1,3 @@
+[submodule "liquidity-vault/lib/forge-std"]
+	path = liquidity-vault/lib/forge-std
+	url = https://github.com/foundry-rs/forge-std

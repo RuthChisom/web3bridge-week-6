@@ -1,0 +1,27 @@
+{
+    "name": "kingness",
+    "description": "A pictorial representation of the prowess of a woman",
+    "image": "https://gateway.pinata.cloud/ipfs/bafybeibitlwfgi52tiofjochnceevcclbflfckcdunrqb4oh2tpsndiiam/kingness.png",
+    "attributes": [
+        {
+            "trait_type": "Courage",
+            "value": 95
+        },
+        {
+            "trait_type": "Wisdom",
+            "value": 90
+        },
+        {
+            "trait_type": "Compassion",
+            "value": 85
+        },
+        {
+            "trait_type": "Resilience",
+            "value": 92
+        },
+        {
+            "trait_type": "Leadership",
+            "value": 88
+        }
+    ]
+}
