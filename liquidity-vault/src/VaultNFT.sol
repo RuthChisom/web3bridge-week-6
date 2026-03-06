@@ -28,6 +28,25 @@ contract VaultNFT is ERC721 {
     }
 
     function tokenURI(uint256 id) public view override returns (string memory) {
-        return vaultMetadata[id];
+
+        string memory data = vaultMetadata[id];
+
+        // build SVG image
+        string memory svg = string(
+            abi.encodePacked(
+                '<svg xmlns="http://www.w3.org/2000/svg" width="400" height="200">',
+                '<rect width="100%" height="100%" fill="black"/>',
+                '<text x="20" y="40" fill="white" font-size="20">Vault NFT</text>',
+                '<text x="20" y="80" fill="white">', data ,'</text>',
+                '</svg>'
+            )
+        );
+
+        return string(
+            abi.encodePacked(
+                "data:image/svg+xml;utf8,",
+                svg
+            )
+        );
     }
 }
