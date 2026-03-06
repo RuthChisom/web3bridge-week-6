@@ -1,15 +1,10 @@
 // SPDX-License-Identifier: MIT
 pragma solidity ^0.8.20;
 
-import "forge-std/Test.sol";
+import {Test, console} from "forge-std/Test.sol";
 
 import "../src/VaultFactory.sol";
 import "../src/VaultNFT.sol";
-
-// interface IERC20 {
-//     function transfer(address,uint256) external returns(bool);
-//     function approve(address,uint256) external returns(bool);
-// }
 
 contract VaultFactoryTest is Test {
 
@@ -28,13 +23,17 @@ contract VaultFactoryTest is Test {
         vm.createSelectFork(vm.envString("MAINNET_RPC_URL"));
 
         nft = new VaultNFT();
-
         factory = new VaultFactory(address(nft));
+
+        console.log("NFT Contract:", address(nft));
+        console.log("Factory Contract:", address(factory));
     }
 
     function testCreateVault() public {
 
         address vault = factory.createVault(USDC);
+
+        console.log("Vault created at:", vault);
 
         assertTrue(vault != address(0));
     }
@@ -43,14 +42,28 @@ contract VaultFactoryTest is Test {
 
         address vaultAddr = factory.createVault(USDC);
 
+        console.log("Vault address:", vaultAddr);
+
         Vault vault = Vault(vaultAddr);
 
         // impersonate the USDC whale, who has a lot of USDC and can approve our vault to spend it
         vm.startPrank(USDC_WHALE);
 
+        console.log("Whale address:", USDC_WHALE);
+
+        uint256 whaleBalance = IERC20(USDC).balanceOf(USDC_WHALE);
+        console.log("Whale USDC Balance:", whaleBalance);
+
         IERC20(USDC).approve(vaultAddr, 1000e6);
 
+        console.log("Approved 1000 USDC to vault");
+
         vault.deposit(1000e6);
+
+        console.log("Deposited 1000 USDC");
+
+        uint256 vaultBalance = IERC20(USDC).balanceOf(vaultAddr);
+        console.log("Vault USDC Balance:", vaultBalance);
 
         vm.stopPrank();
     }
