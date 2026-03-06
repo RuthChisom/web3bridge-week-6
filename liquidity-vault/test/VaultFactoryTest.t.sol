@@ -25,9 +25,6 @@ contract VaultFactoryTest is Test {
         nft = new VaultNFT();
         factory = new VaultFactory(address(nft));
 
-        string memory uri = nft.tokenURI(1);
-        console.log("NFT URI: ",uri);
-
 
         console.log("NFT Contract:", address(nft));
         console.log("Factory Contract:", address(factory));
@@ -36,8 +33,11 @@ contract VaultFactoryTest is Test {
     function testCreateVault() public {
 
         address vault = factory.createVault(USDC);
-
         console.log("Vault created at:", vault);
+
+        uint256 id = nft.tokenId();
+        string memory uri = nft.tokenURI(id);
+        console.log("NFT URI: ",uri);
 
         assertTrue(vault != address(0));
     }
@@ -70,5 +70,13 @@ contract VaultFactoryTest is Test {
         console.log("Vault USDC Balance:", vaultBalance);
 
         vm.stopPrank();
+
+        // Now mint the NFT reflecting the deposit
+        uint256 nftId = factory.mintVaultNFT(vaultAddr, USDC, 1000);
+
+        string memory uri = nft.tokenURI(nftId);
+
+        console.log("Vault address:", vaultAddr);
+        console.log("NFT URI:", uri);
     }
 }
