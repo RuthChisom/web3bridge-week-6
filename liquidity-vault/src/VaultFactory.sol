@@ -19,12 +19,13 @@ contract VaultFactory {
         nft = VaultNFT(_nft);
     }
 
+    //use create2 to deploy vaults at deterministic addresses based on token address
     function createVault(address token) external returns (address) {
         require(vaults[token] == address(0), "Vault exists");
 
         bytes32 salt = keccak256(abi.encode(token));
 
-        Vault vault = new Vault{salt: salt}(token, msg.sender);
+        Vault vault = new Vault{salt: salt}(token, msg.sender); //deploy vault with token address and creator as parameters
 
         vaults[token] = address(vault);
 

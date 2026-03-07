@@ -36,6 +36,8 @@ contract VaultFactoryTest is Test {
         console.log("Vault created at:", vault);
 
         uint256 id = nft.tokenId();
+        console.log("NFT id: ",id);
+
         string memory uri = nft.tokenURI(id);
         console.log("NFT URI: ",uri);
 
